@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import logo from '..//../public/images/projects/logo1.png'; // Adjust path if needed
+import { Link } from 'react-router-dom';
+const logo = '/images/projects/logo1.png';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -36,11 +37,14 @@ const Header = () => {
 
           {/* Logo - Image instead of text */}
           <div className="flex items-center">
-            <img
-  src={logo}
-  alt="42.aiii Logo"
-  style={{ height: 0, width: 500 }}  // height 100px
-/>
+            <Link to="/">
+              <img
+                src={logo}
+                alt="42.AI Logo"
+                className="h-12 w-auto transition-all duration-300 hover:scale-105 cursor-pointer"
+                style={{ maxWidth: '200px' }}
+              />
+            </Link>
 
 
 
@@ -58,9 +62,9 @@ const Header = () => {
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 transition-all duration-300 group-hover:w-full"></span>
               </a>
             ))}
-            <button className="glass px-6 py-2 rounded-lg hover:glow-blue transition-all duration-300 text-sm font-medium">
+            <Link to="/get-started" className="glass px-6 py-2 rounded-lg hover:glow-blue transition-all duration-300 text-sm font-medium">
               Get Started
-            </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -85,9 +89,9 @@ const Header = () => {
                 {item.name}
               </a>
             ))}
-            <button className="w-full mt-4 glass px-6 py-2 rounded-lg hover:glow-blue transition-all duration-300 text-sm font-medium">
+            <Link to="/get-started" className="w-full mt-4 glass px-6 py-2 rounded-lg hover:glow-blue transition-all duration-300 text-sm font-medium text-center block">
               Get Started
-            </button>
+            </Link>
           </div>
         )}
       </div>

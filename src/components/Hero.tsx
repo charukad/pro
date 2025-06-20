@@ -1,7 +1,7 @@
 import Spline from '@splinetool/react-spline';
 import { ArrowRight, Code, Calendar, Phone, Mail, Clock } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import logo from '../../public/images/projects/logo1.png';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+const logo = '/images/projects/logo1.png';
 import {
   Dialog,
   DialogContent,
@@ -47,48 +47,69 @@ const Hero = () => {
     setParticles(initParticles);
   }, []);
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-      
-      // Smooth background color changes
-      const x = e.clientX / window.innerWidth;
-      const y = e.clientY / window.innerHeight;
-      
-      const r = Math.floor(15 + x * 30);
-      const g = Math.floor(23 + y * 40);
-      const b = Math.floor(42 + (x + y) * 25);
-      
-      setBgColor({ r, g, b });
+  // Throttled mouse move handler for better performance
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+    
+    // Smooth background color changes
+    const x = e.clientX / window.innerWidth;
+    const y = e.clientY / window.innerHeight;
+    
+    const r = Math.floor(15 + x * 30);
+    const g = Math.floor(23 + y * 40);
+    const b = Math.floor(42 + (x + y) * 25);
+    
+    setBgColor({ r, g, b });
 
-      // Update particle targets - closer to mouse for better following
-      setParticles(prev => prev.map((particle, i) => {
-        const angle = (i * 45) * (Math.PI / 180);
-        const distance = 30 + i * 15; // Reduced distance for closer following
-        const targetX = e.clientX + Math.cos(angle) * distance;
-        const targetY = e.clientY + Math.sin(angle) * distance;
-        
-        return {
-          ...particle,
-          targetX,
-          targetY,
-        };
-      }));
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    // Update particle targets - closer to mouse for better following
+    setParticles(prev => prev.map((particle, i) => {
+      const angle = (i * 45) * (Math.PI / 180);
+      const distance = 30 + i * 15;
+      const targetX = e.clientX + Math.cos(angle) * distance;
+      const targetY = e.clientY + Math.sin(angle) * distance;
+      
+      return {
+        ...particle,
+        targetX,
+        targetY,
+      };
+    }));
   }, []);
 
-  // Smooth animation using requestAnimationFrame
   useEffect(() => {
-    const animate = () => {
-      setParticles(prev => prev.map(particle => ({
-        ...particle,
-        x: particle.x + (particle.targetX - particle.x) * 0.25, // Faster interpolation
-        y: particle.y + (particle.targetY - particle.y) * 0.25,
-      })));
-      
+    let timeoutId: NodeJS.Timeout;
+    
+    const throttledMouseMove = (e: MouseEvent) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => handleMouseMove(e), 16); // ~60fps
+    };
+
+    window.addEventListener('mousemove', throttledMouseMove);
+    
+    return () => {
+      window.removeEventListener('mousemove', throttledMouseMove);
+      clearTimeout(timeoutId);
+    };
+  }, [handleMouseMove]);
+
+  // Optimized animation with throttling
+  const animateParticles = useCallback(() => {
+    setParticles(prev => prev.map(particle => ({
+      ...particle,
+      x: particle.x + (particle.targetX - particle.x) * 0.1, // Slower interpolation for better performance
+      y: particle.y + (particle.targetY - particle.y) * 0.1,
+    })));
+  }, []);
+
+  useEffect(() => {
+    let lastTime = 0;
+    const throttleMs = 16; // ~60fps
+
+    const animate = (currentTime: number) => {
+      if (currentTime - lastTime >= throttleMs) {
+        animateParticles();
+        lastTime = currentTime;
+      }
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -99,7 +120,7 @@ const Hero = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, []);
+  }, [animateParticles]);
 
   const handleConsultationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,10 +241,6 @@ const Hero = () => {
       {/* Content Overlay - Original centered position */}
       <div className="container mx-auto px-6 text-center relative z-10">
         <div className="max-w-6xl mx-auto">
-          {/* Company Logo */}
-          <div className="mb-8">
-            
-          </div>
 
           {/* Hero Badge */}
           <div className="inline-flex items-center bg-black/30 px-6 py-3 rounded-full mb-10 border border-white/20">
@@ -231,9 +248,15 @@ const Hero = () => {
             <span className="text-base font-medium text-white">✨ Building Software That Builds Businesses</span>
           </div>
 
-<div style={{ position: 'fixed', left: '-20px', top: '-20px' }}>
-  <img src={logo} alt="Logo" style={{ width: '600px' }} />
-</div>
+          {/* Hero Logo */}
+          <div className="mb-8">
+            <img 
+              src={logo} 
+              alt="42.AI Logo" 
+              className="mx-auto h-20 w-auto opacity-90 hover:opacity-100 transition-opacity duration-300"
+              style={{ maxWidth: '300px' }}
+            />
+          </div>
 
 
           {/* Main Heading */}

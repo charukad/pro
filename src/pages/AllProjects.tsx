@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ExternalLink, Github, Calendar, Tag, Filter, X, Loader2 } from 'lucide-react';
 import GlobalCursor from '@/components/GlobalCursor';
+import { API_ENDPOINTS } from '@/config/config';
 
 interface Project {
   id: string;
@@ -38,14 +39,11 @@ const AllProjects = () => {
     fetchProjects();
   }, []);
 
-  useEffect(() => {
-    filterProjects();
-  }, [projects, selectedCategory, selectedStatus]);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/projects');
+      const response = await fetch(API_ENDPOINTS.PROJECTS);
       if (!response.ok) {
         throw new Error(`Backend not available: ${response.status}`);
       }
@@ -64,7 +62,7 @@ const AllProjects = () => {
     }
   };
 
-  const filterProjects = () => {
+  const filterProjects = useCallback(() => {
     let filtered = projects;
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(project => project.category === selectedCategory);
@@ -73,7 +71,11 @@ const AllProjects = () => {
       filtered = filtered.filter(project => project.status === selectedStatus);
     }
     setFilteredProjects(filtered);
-  };
+  }, [projects, selectedCategory, selectedStatus]);
+
+  useEffect(() => {
+    filterProjects();
+  }, [filterProjects]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';

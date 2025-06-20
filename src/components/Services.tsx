@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Globe, Smartphone, Database, Cloud, TestTube, Palette, CheckCircle, Star, Users, Zap, Send, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { API_ENDPOINTS } from '@/config/config';
 
 const Services = () => {
   const { toast } = useToast();
@@ -158,14 +159,14 @@ const Services = () => {
     },
   ];
 
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleServiceInquiry = async (formData) => {
+  const handleServiceInquiry = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:3001/api/service-inquiry', {
+      const response = await fetch(API_ENDPOINTS.SERVICE_INQUIRY, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +200,7 @@ const Services = () => {
     }
   };
 
-  const ServiceInquiryForm = ({ service, onSubmit, isSubmitting }) => {
+  const ServiceInquiryForm = ({ service, onSubmit, isSubmitting }: { service: any; onSubmit: (data: any) => void; isSubmitting: boolean }) => {
     const [formData, setFormData] = useState({
       name: '',
       email: '',

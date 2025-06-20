@@ -2,18 +2,62 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import nodemailer from 'nodemailer';
+import helmet from 'helmet';
 import projectsService from './projectsService.js';
 import dotenv from 'dotenv';
+import {
+  validateServiceInquiry,
+  validateContact,
+  handleValidationErrors,
+  sanitizeInput,
+  generalRateLimit,
+  formSubmissionRateLimit,
+} from './middleware/validation.js';
+import {
+  errorHandler,
+  notFoundHandler,
+  requestLogger,
+  securityHeaders,
+} from './middleware/errorHandler.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+app.use(securityHeaders);
+app.use(requestLogger);
+
+// Rate limiting
+app.use('/api', generalRateLimit);
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://yourproductiondomain.com'] 
+    : ['http://localhost:5173', 'http://localhost:8080'],
+  credentials: true,
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Body parsing middleware
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// Input sanitization
+app.use(sanitizeInput);
 
 // Email transporter configuration
 const transporter = nodemailer.createTransport({
@@ -216,7 +260,11 @@ app.get('/api/services/:id', (req, res) => {
 });
 
 // Handle service inquiry
-app.post('/api/service-inquiry', async (req, res) => {
+app.post('/api/service-inquiry', 
+  formSubmissionRateLimit,
+  validateServiceInquiry,
+  handleValidationErrors,
+  async (req, res) => {
   try {
     const { name, email, phone, serviceType, message, budget, timeline } = req.body;
 
@@ -286,7 +334,11 @@ app.post('/api/service-inquiry', async (req, res) => {
 });
 
 // Handle general contact form
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact',
+  formSubmissionRateLimit,
+  validateContact,
+  handleValidationErrors,
+  async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
 
@@ -340,21 +392,10 @@ app.get('/api/health', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Something went wrong!'
-  });
-});
+app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
+app.use('*', notFoundHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
